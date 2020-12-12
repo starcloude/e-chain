@@ -1,0 +1,282 @@
+<div class="layui-fluid">
+  <div class="layui-row layui-col-space15">
+    <div class="layui-col-md12">
+      <div class="layui-card">
+      
+      	<div class="layui-card-body layui-form" style="padding-bottom: 0px;" lay-filter="layadmin-userfront-formlist">
+			<div class="layui-input-inline">
+				<input type="text" id="title" placeholder="标题"
+					style="width: 200px;" class="layui-input">
+			</div>
+			<div class="layui-input-inline">
+				<input type="text" id="introduce" placeholder="简介"
+					style="width: 200px;" class="layui-input">
+			</div>
+			<div class="layui-input-inline">
+				<select id="query_state"><option value="">-- 所有 --</option></select>
+			</div>
+			<div class="layui-input-inline">
+				<button id="searchBtn" class="layui-btn" lay-filter="sreach">
+					<i class="layui-icon layui-icon-search"></i> 搜索
+				</button>
+			</div>
+			<div class="layui-input-inline" shiro:hasPermission="user:add">
+				<button id="addBtn" class="layui-btn" lay-filter="add">
+					<i class="layui-icon layui-icon-add-1"></i> 添加
+				</button>
+			</div>
+		</div>
+      	
+        <div class="layui-card-body">
+          <table class="layui-hide" id="listTable" lay-filter="listTable"></table>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script type="text/html" id="optionBar">
+{{#if(hasPermission('news:delete')){ }}
+<a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="delete">删除</a>
+{{#} if(hasPermission('news:edit')){}}
+<a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
+{{#}}}
+</script>
+<script type="text/html" id="newsDetailHtml">
+<form class="layui-form" id="post_form" style="padding:15px;">
+  <div class="layui-form-item">
+    <label class="layui-form-label">类型</label>
+    <div class="layui-input-block">
+      <select name="type" id="type"></select>
+    </div>
+  </div>
+  <div class="layui-form-item">
+    <label class="layui-form-label">标题</label>
+    <div class="layui-input-block">
+      <input type="text" id="title" name="title" maxlength="128" value="{{title}}" class="layui-input">
+    </div>
+  </div>
+  <div class="layui-form-item">
+    <label class="layui-form-label">作者</label>
+    <div class="layui-input-block">
+      <input type="text" id="author" name="author" maxlength="64" placeholder="作者" value="{{author}}" autocomplete="off" class="layui-input">
+    </div>
+  </div>
+  <div class="layui-form-item">
+    <label class="layui-form-label">简介</label>
+    <div class="layui-input-block">
+      <textarea class="layui-textarea" id="introduce" name="introduce">{{introduce}}</textarea>
+    </div>
+  </div>
+  <div class="layui-form-item">
+    <label class="layui-form-label">内容</label>
+    <div class="layui-input-block">
+      <textarea class="layui-textarea" id="content" name="content" rows="20">{{content}}</textarea>
+    </div>
+  </div>
+  <div class="layui-form-item">
+    <label class="layui-form-label">链接</label>
+    <div class="layui-input-block">
+      <input type="text" id="link" name="link" maxlength="30" placeholder="链接" value="{{link}}" class="layui-input">
+    </div>
+  </div>
+  <div class="layui-form-item">
+    <label class="layui-form-label">状态</label>
+    <div class="layui-input-block">
+      <select name="state" id="state"></select>
+    </div>
+  </div>
+</form>
+</script>
+
+<script>
+//权限
+checkPromision("news:view");
+function getAbsUrl(url){
+	return apiRoot()+"/api/business/news/"+url;
+}
+var layer,table,dict,detailHtml;
+
+//字典
+loadDict("newsInfoType,newsInfoState",function(dct){
+ dict = dct;
+ initTable();
+ detailHtml = newsDetailHtml.text;
+ initNewsInfoState("query_state");
+});
+
+function initNewsInfoType(id,defaultValue){
+	renderSelect($("#"+id),dict.newsInfoType,defaultValue);
+	if(layui.form){
+		layui.form.render('select');
+	}
+}
+
+function initNewsInfoState(id,defaultValue){
+	renderSelect($("#"+id),dict.newsInfoState,defaultValue);
+	if(layui.form){
+		layui.form.render('select');
+	}
+}
+
+//初始化table
+function initTable(){
+	layui.use(['table','layer'], function(){
+		layer = layui.layer;
+		table = layui.table;
+		layui.form.render(null, 'layadmin-userfront-formlist');
+	  	table.render({
+	    elem: '#listTable'
+	    ,url:getAbsUrl('query')
+	    ,method:'post'
+	    ,where: getQueryParam()
+	    ,response:{
+	    	countName:"total"
+	    	,dataName:"result"
+	    }
+	    ,request: {
+	    	pageName: 'pageNo' //页码的参数名称，默认：page
+	    	,limitName: 'pageSize' //每页数据量的参数名，默认：limit
+	  	}
+	    ,cols: getCols()
+	    ,page: true
+	    ,id:"tbl_table",
+	    done:function(res, curr, count){
+	   		$('#listTable').next().find('.layui-table-body').find("table" ).find("tbody").children("tr").on('dblclick',function(){
+	           	var id = JSON.stringify($('#listTable').next().find('.layui-table-body').find("table").find("tbody").find(".layui-table-hover").data('index'));
+	           	var obj = res.result[id];
+				showDetailForm(obj);
+	        });
+	    }
+	  });
+	  
+	  //##点击事件
+	  table.on('tool(listTable)', function (obj) { //注：tool是工具条事件名，test是table原始容器的属性 lay-filter="对应的值"
+		var data = obj.data //获得当前行数据
+		,layEvent = obj.event; //获得 lay-event 对应的值
+	    if (layEvent === 'delete'){
+	    	doDelete(data.id,1);
+	    }else if (layEvent === 'edit'){
+	    	showDetailForm(data);
+	    }
+	  });
+	});
+}
+
+//列
+function getCols(){
+	return [[
+	  { width:200, title: '类型',templet:function(d){return renderStatus(d.type,dict.newsInfoType);}}
+      ,{field:'title',title: '标题'}
+      ,{field:'author',title: '作者'}
+      ,{field:'introduce',title: '简介'}
+      ,{ width:200, title: '状态',templet:function(d){return renderStatus(d.state,dict.newsInfoState);}}
+      ,{field:'createTime',width:160, title: '创建时间',templet:function(d){return renderDate(d.createTime);}}
+      ,{width:160, title: '操作',toolbar:"#optionBar"}
+    ]];
+}
+
+//刷新
+layui.jquery("#searchBtn").on("click",function(){
+	reloadTable(getQueryParam());
+});
+
+//刷新
+function reloadTable(data){
+	//这里以搜索为例
+	table.reload("tbl_table",{
+	  where: data
+	  ,page: {
+	    curr: 1 //重新从第 1 页开始
+	  }
+	});
+}
+
+if(hasPermission('news:add')){
+	//添加
+	$("#addBtn").on("click",function(){
+		showDetailForm();
+	});
+}else{
+	$("#addBtn").hide();
+}
+
+//查询参数
+function getQueryParam(){
+	return {
+	    "title": $("#title").val()
+	    ,"introduce": $("#introduce").val()
+	    ,"state": $("#query_state").val()
+	  };
+}
+
+//显示详情
+function showDetailForm(data){
+	
+	var html =detailHtml;
+	
+	data = data||{id:-1};
+	
+	html = renderTemplate(html,data);
+	
+	openDlg({
+		type:1,
+	  title: '新增/修改'
+	  ,content: html
+	  ,shadeClose:true
+	  ,area:['500px','1000px']
+	  ,btn:['确定','取消']
+	  },function(layero,index){
+		//先销毁已有的编辑器实例，否则二次加载时不渲染
+		UE.delEditor('content');
+		//初始化编辑器
+		var ue = UE.getEditor('content',{
+			autoHeightEnabled:true,
+			scaleEnabled :true
+		});
+		initNewsInfoType("type",data.type);
+		initNewsInfoState("state",data.state);
+		//ue.setContent()传入空值会报js错
+		if(data.content != null){
+			//赋值给编辑器
+			ue.ready(function() {
+				ue.setContent(data.content);
+			});
+		}
+	  },
+	  function(layero,index){
+	  	var url = "edit";
+	  	var formData = $('#post_form').serializeJson();
+	  	formData.id = data.id;
+		if(!formData.title || formData.title=="" || formData.title.length>128){
+			error("标题不能为空或大于128个字符!");
+			return;
+		}
+		if(!formData.introduce || formData.introduce=="" || formData.introduce.length>250){
+			error("简介不能为空或大于250个字符!");
+			return;
+		}
+	  	Ajax.Post(getAbsUrl(url),formData,function(msg){
+	  		layer.close(index);
+	  		success('操作成功');
+	  		reloadTable(getQueryParam());
+	  	},function(msg,rs){
+	  		error(msg);
+	  	});
+	  }
+	);
+}
+
+//删除/恢复
+function doDelete(id,yn){
+	Ajax.Post(getAbsUrl("delete"),{id:id,yn:yn},function(msg){
+  		success('操作成功');
+  		reloadTable(getQueryParam());
+  	},function(msg,rs){
+  		error(msg);
+  	});
+}
+
+</script>

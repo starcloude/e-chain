@@ -1,0 +1,113 @@
+<div class="layui-fluid">
+  <div class="layui-row layui-col-space15">
+    <div class="layui-col-md12">
+      <div class="layui-card">
+      
+      	<div class="layui-card-body layui-form" style="padding-bottom: 0px;" lay-filter="layadmin-userfront-formlist">
+			<div class="layui-input-inline">
+				<input type="text" id="query_id" placeholder="玩家ID"
+					style="width: 150px;" class="layui-input">
+			</div>
+			<div class="layui-input-inline">
+				<button id="searchBtn" class="layui-btn" lay-filter="sreach">
+					<i class="layui-icon layui-icon-search"></i> 搜索
+				</button>
+			</div>
+		</div>
+      	
+        <div class="layui-card-body">
+          <table class="layui-hide" id="listTable" lay-filter="listTable"></table>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+
+//权限
+checkPromision("vuser_question:view");
+
+function getAbsUrl(url){
+	return apiRoot()+"/api/business/user/question/"+url;
+}
+var layer,table,dict;
+
+//字典
+loadDict("question",function(dct){
+ dict = dct;
+ initTable();
+});
+
+
+function initState(id,defaultValue){
+	renderSelect($("#"+id),dict.question,defaultValue);
+	if(layui.form){
+		layui.form.render('select');
+	}
+}
+
+
+//初始化table
+function initTable(){
+	layui.use(['table','layer'], function(){
+		layer = layui.layer;
+		table = layui.table;
+		layui.form.render(null, 'layadmin-userfront-formlist');
+	  	table.render({
+	    elem: '#listTable'
+	    ,url:getAbsUrl('query')
+	    ,method:'post'
+	    ,where: getQueryParam()
+	    ,response:{
+	    	countName:"total"
+	    	,dataName:"result"
+	    }
+	    ,request: {
+	    	pageName: 'pageNo' //页码的参数名称，默认：page
+	    	,limitName: 'pageSize' //每页数据量的参数名，默认：limit
+	  	}
+	    ,cols: getCols()
+	    ,page: true
+	    ,id:"tbl_table"
+	  });
+
+	});
+}
+
+//列
+function getCols(){
+	return [[
+      {field:'userId', width:150, title: '玩家ID'}
+      ,{title: '问题',templet:function(d){return renderStatus(d.questionId,dict.question,true);}}
+      ,{field:'answer',title: '答案'}
+      ,{field:'createTime',width:160, title: '创建时间',templet:function(d){return renderDate(d.createTime);}}
+      ,{field:'updateTime',width:160, title: '更新时间',templet:function(d){return renderDate(d.updateTime);}}
+    ]];
+}
+
+//刷新
+layui.jquery("#searchBtn").on("click",function(){
+	reloadTable(getQueryParam());
+});
+
+//刷新
+function reloadTable(data){
+	//这里以搜索为例
+	table.reload("tbl_table",{
+	  where: data
+	  ,page: {
+	    curr: 1 //重新从第 1 页开始
+	  }
+	});
+}
+
+//查询参数
+function getQueryParam(){
+	return {
+	    "userId": $("#query_id").val()
+	  };
+}
+
+</script>

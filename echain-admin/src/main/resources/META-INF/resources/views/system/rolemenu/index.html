@@ -1,0 +1,148 @@
+<div class="layui-fluid">
+  <div class="layui-row layui-col-space15">
+    <div class="layui-col-md12">
+      <div class="layui-card">
+      
+      	<div class="layui-card-body layui-form" style="padding-bottom: 0px;" lay-filter="layadmin-userfront-formlist">
+	      	<div class="layui-input-inline">
+				<script type="text/html" template lay-url="{{layui.setter.api_root}}/api/system/role/query?v={{ layui.admin.v }}" lay-done="layui.form.render('select')">
+				<select id="query_rid">
+					<option value=""> 请选择(角色)  </option>
+					{{#layui.each(d.result, function(index, r){}}
+					<option value="{{r.id}}">{{r.name}}</option>
+					{{#});}}
+				</select>
+				</script>
+			</div>
+			
+			<div class="layui-input-inline">
+	        	<button id="load" class="layui-btn" ><i class="layui-icon layui-icon-search"></i> 加载</button>
+	        	<button id="saveBtn" class="layui-btn layui-btn-primary"><i class="layui-icon layui-icon-auz"></i> 保存</button>
+	        </div>
+			
+		</div>
+      	
+        <div class="layui-card-body">
+          <table class="layui-hide" id="listTable"></table>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+</div>	
+	
+	
+	
+	
+<script>
+checkPromision("rolemenu:view");
+  var layer;
+  var table;
+  var treetable;
+	function getAbsUrl(url){
+		return apiRoot()+"/api/system/rolemenu/"+url;
+	}
+	
+	if(!hasPermission('rolemenu:edit')){
+		$("#saveBtn").hide();
+	}else{
+		//保存事件
+	  $("#saveBtn").on("click",function(){
+			var rid = $("#query_rid").val();
+			if(rid == "" || rid<=0){
+				error("请选择角色!");
+				return;
+			}
+			
+			var mids = new Array();
+			
+			var checkedData = table.checkStatus("tbl_table").data;
+			for(var i=0;i<checkedData.length;i++){
+				mids.push(checkedData[i]["id"]);
+			}
+			
+			if(mids == null || mids.length == 0){
+				layer.confirm("没有勾选权限,是否继续 ???", {
+				  btn: ['继续','取消']
+				}, function(){
+					execPost(rid,mids);
+				});
+				return;
+			}
+			execPost(rid,mids);
+		});
+	}
+	
+layui.use(['table','layer','treetable'], function(){
+	  layer = layui.layer;
+	  table = layui.table;
+	  treetable = layui.treetable;
+	  //loadTable();
+	  //layui.form.render(null, 'layadmin-userfront-formlist');
+//	  layui.form.render('select');
+
+
+	//刷新
+	$("#load").on("click",function(){
+		loadTable();
+	});
+
+});
+
+//刷新
+function loadTable(){
+	treetable.render({
+    elem: '#listTable',
+    treeColIndex: 1,
+    treeSpid: 0,
+    treeIdName: 'id',
+    treePidName: 'pid'
+    ,url:getAbsUrl('query')
+    ,method:'post'
+    ,where: getQueryParam()
+    ,response:{
+    	countName:'total'
+    	,dataName:'result'
+    }
+    ,cols: [
+    	[
+    	{type:'checkbox'},
+    	{field:'text', minWidth:150, title: '名称'}
+      ,{width:70, title: '类型',templet:function(d){if(d.type==1){return "导航"};if(d.type==2){return "菜单"};if(d.type==3){return "按钮"};}}
+      ,{field:'code', width:180, title: '权限码'}
+      ,{field:'url', width:200, title: '地址'}
+      ,{title: '有效', width:70,templet:function(d){return renderYn(d.yn);}}
+    ]
+    	]
+    ,page: false
+    ,id:"tbl_table"
+    ,done:function(res,page,count){
+    	var data = res.result;
+    	for(var i = 0;i<data.length;i++){
+    		if(data[i].rid != null && data[i].rid!=0){
+    			data[i]["LAY_CHECKED"]='true';
+		        //下面三句是通过更改css来实现选中的效果
+		        var index= data[i]['LAY_TABLE_INDEX'];
+		        $('tr[data-index=' + index + '] input[type="checkbox"]').prop('checked', true);
+		        $('tr[data-index=' + index + '] input[type="checkbox"]').next().addClass('layui-form-checked');
+    		}
+    	}
+    }
+  });
+}
+function getQueryParam(){
+	return {rid:$("#query_rid").val()};
+}
+
+function execPost(rid,mids){
+	layer.confirm("你确定要设置权限吗 ???", {
+		  btn: ['确定','取消']
+		}, function(){
+			Ajax.Post(getAbsUrl("edit"),{"rid":rid,"mids":mids},function(msg){
+				 success('操作成功');
+			},function(msg,rst){
+				error(msg);
+			});
+		});
+}
+</script>

@@ -1,0 +1,100 @@
+
+<script type="text/html" template>
+  <link rel="stylesheet" href="{{ layui.setter.base }}style/login.css?v={{ layui.admin.v }}-1" media="all">
+</script>
+
+<div class="layadmin-user-login layadmin-user-display-show" id="LAY-user-login" style="display: none;">
+
+  <div class="layadmin-user-login-main">
+    <div class="layadmin-user-login-box layadmin-user-login-header">
+      <h2>EChain交易系统</h2>
+      <p>后台管理系统</p>
+    </div>
+    <div class="layadmin-user-login-box layadmin-user-login-body layui-form">
+      <div class="layui-form-item">
+        <label class="layadmin-user-login-icon layui-icon layui-icon-username" for="LAY-user-login-username"></label>
+        <input type="text" name="userName" id="LAY-user-login-username" lay-verify="required" placeholder="用户名" class="layui-input">
+      </div>
+      <div class="layui-form-item">
+        <label class="layadmin-user-login-icon layui-icon layui-icon-password" for="LAY-user-login-password"></label>
+        <input type="password" name="userPwd" id="LAY-user-login-password" lay-verify="required" placeholder="密码" class="layui-input">
+      </div>
+      <div class="layui-form-item">
+        <div class="layui-row">
+          <div class="layui-col-xs7">
+            <label class="layadmin-user-login-icon layui-icon layui-icon-vercode" for="LAY-user-login-vercode"></label>
+            <input type="text" name="captchaCode" id="LAY-user-login-vercode" lay-verify="required" placeholder="图形验证码" class="layui-input">
+          </div>
+          <div class="layui-col-xs5">
+            <div style="margin-left: 10px;">
+              <img id="LAY-user-get-vercode" style="height:36px;flot:right;"><input id="LAY-user-get-r" name="r" type="hidden" value="${r}">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <button class="layui-btn layui-btn-fluid" lay-submit id="LAY-user-login-submit" lay-filter="LAY-user-login-submit">登 入</button>
+      </div>
+    </div>
+  </div>
+  
+</div>
+
+<script>
+var r = Math.random();
+layui.use(['admin', 'form'], function(){
+  var $ = layui.$
+  ,setter = layui.setter
+  ,admin = layui.admin
+  ,form = layui.form
+  ,router = layui.router()
+  ,search = router.search;
+
+  form.render();
+  $("#LAY-user-get-r").val(r);
+  
+  $("#LAY-user-get-vercode").on("click",function(){
+	  refreshCode();  
+  });
+
+  $(document).unbind("keydown");
+  $(document).keydown(function (e) {
+  	if (e.keyCode === 13) {
+  		 $("#LAY-user-login-submit").trigger("click");
+  	}
+  });
+  
+  //提交
+  form.on('submit(LAY-user-login-submit)', function(obj){
+	  Ajax.Post(apiRoot()+"/api/login",obj.field,function(msg){
+		  layer.msg('登入成功', {
+	          offset: '15px'
+	          ,icon: 1
+	          ,time: 500
+	        }, function(){
+	          //window.location.href="/index.html";
+				//获取登录信息,然后 在跳转到 首页
+				Ajax.Post(apiRoot()+"/api/session",{ts:Math.random()},function(msg,data){
+					layui.setter.localUser(data.user);
+					layui.setter.promission(data.promission);
+					 location.hash = '/';
+				},function(msg,res){
+					console.log(msg);
+				});
+	        });
+	  	},function(msg,res){
+	  		layer.msg(res.msg);
+   			refreshCode();
+   			$("#LAY-user-login-vercode").val("");
+   			$("#LAY-user-login-password").val("");
+   			$("#LAY-user-login-password").focus();
+	  	});
+  });
+  //页面加载完毕 ,初始化验证码
+  refreshCode();
+});
+	
+function refreshCode(){
+	$("#LAY-user-get-vercode").attr("src",apiRoot()+"/captcha/index?r="+r+"&ts="+Math.random());
+}
+</script>

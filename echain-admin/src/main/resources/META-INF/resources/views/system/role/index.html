@@ -1,0 +1,190 @@
+<div class="layui-fluid">
+  <div class="layui-row layui-col-space15">
+    <div class="layui-col-md12">
+      <div class="layui-card">
+      
+      	<div class="layui-card-body layui-form" style="padding-bottom: 0px;" lay-filter="layadmin-userfront-formlist">
+	    
+	    <form class="layui-form layui-col-space5" onsubmit="return false;" style="margin-bottom:0px;">
+	    	<div class="layui-input-inline">
+				<select id="query_yn">
+					<option value=""> 全部(状态)  </option>
+					<option value="0"> 有效  </option>
+					<option value="1"> 无效  </option>
+				</select>
+			</div>
+			<div class="layui-input-inline">
+				<input type="text" id="query_id" placeholder="id" style="width:350px;" class="layui-input">
+			</div>
+			<div class="layui-input-inline">
+	        	<button id="searchBtn" class="layui-btn"  lay-filter="sreach"><i class="layui-icon layui-icon-search"></i> 搜索</button>
+	        </div>
+			<div class="layui-input-inline">
+	        	<button id="addBtn" class="layui-btn"  lay-filter="add"><i class="layui-icon layui-icon-add-1"></i> 添加</button>
+	        </div>
+   		</form>
+			
+		</div>
+      	
+        <div class="layui-card-body">
+          <table class="layui-hide" id="listTable" lay-filter="listTable"></table>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<textarea id="detail_form"
+	style="display: none; width: 0px; height: 0px;">
+<form class="layui-form" id="post_form" style="padding:15px;">
+  <div class="layui-form-item">
+    <label class="layui-form-label">名称</label>
+    <div class="layui-input-block">
+      <input type="text" name="name" maxlength="20" placeholder="名称"
+					value="{{name}}" autocomplete="off" class="layui-input">
+    </div>
+  </div>
+</form>
+</textarea>
+<script type="text/html" id="barDemo">
+{{#if(hasPermission('role:edit')){ }}
+<a class="layui-btn layui-btn-xs layui-btn-primary" lay-event="edit">编辑</a>
+{{#} if(d.yn==1 && hasPermission('role:delete')){ }}
+<a class="layui-btn layui-btn-xs" lay-event="recover">恢复</a>
+{{#} if(d.yn == 0 && hasPermission('role:delete')){}}
+<a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="delete">删除</a>
+{{#}}}
+</script>
+<script>
+checkPromision("role:view");
+  var layer;
+  var table;
+	function getAbsUrl(url){
+		return apiRoot()+"/api/system/role/"+url;
+	} 
+layui.use(['table','layer'], function(){
+	  layer = layui.layer;
+	  table = layui.table;
+	  layui.form.render(null, 'layadmin-userfront-formlist');
+  	table.render({
+    elem: '#listTable'
+    ,url:getAbsUrl('query')
+    ,method:'post'
+    ,where: getQueryParam()
+    ,response:{
+    	countName:"total"
+    	,dataName:"result"
+    }
+    ,request: {
+    	pageName: 'pageNo' //页码的参数名称，默认：page
+    	,limitName: 'pageSize' //每页数据量的参数名，默认：limit
+  	}
+    ,cols: [
+    	[
+      {field:'id', width:80, title: 'ID'}
+      ,{field:'name', minWidth:200, title: '角色名称'}
+      ,{field:'createTime',width:200, title: '创建时间',templet:function(d){return renderDate(d.createTime);}}
+      ,{field:'createPin', width:100, title: '创建人'}
+      ,{title: '有效', width: 70,templet:function(d){return renderYn(d.yn);}}
+      ,{width:150, title: '操作',toolbar:"#barDemo"}
+    ]
+    	]
+    ,page: true
+    ,id:"tbl_table"
+   	,done:function(res, curr, count){
+   		$('#listTable').next().find('.layui-table-body').find("table" ).find("tbody").children("tr").on('dblclick',function(){
+           	var id = JSON.stringify($('#listTable').next().find('.layui-table-body').find("table").find("tbody").find(".layui-table-hover").data('index'));
+           	var obj = res.result[id];
+           	showDetailForm(obj);
+        });
+    }
+  });
+  	
+  //##点击事件
+    table.on('tool(listTable)', function (obj) { //注：tool是工具条事件名，test是table原始容器的属性 lay-filter="对应的值"
+		var data = obj.data //获得当前行数据
+		,layEvent = obj.event; //获得 lay-event 对应的值
+        if (layEvent === 'recover'){
+        	doDelete(data.id,0);
+        }else if (layEvent === 'delete'){
+        	doDelete(data.id,1);
+        }else if (layEvent === 'edit'){
+        	showDetailForm(data);
+        }
+	});
+});
+
+//查询参数
+function getQueryParam(){
+	return {
+	    "id": $("#query_id").val().replace(/(^\s*)|(\s*$)/g,"")
+	    ,"yn": $("#query_yn").val()
+	  };
+}
+
+//刷新
+$("#searchBtn").on("click",function(){
+	reloadTable(getQueryParam());
+});
+
+//刷新
+function reloadTable(data){
+	//这里以搜索为例
+	table.reload("tbl_table",{
+	  where: data
+	  ,page: {
+	    curr: 1 //重新从第 1 页开始
+	  }
+	});
+}
+
+if(hasPermission('menu:add')){
+	//添加
+	$("#addBtn").on("click",function(){
+		showDetailForm({id:-1});
+	});
+}else{
+	$("#addBtn").hide();
+}
+
+var detailHtml = $("#detail_form").text();
+//显示详情
+function showDetailForm(data){
+	data = data||{id:-1};
+	var html = renderTemplate(detailHtml,data);
+	openDlg({
+	  title: '新增/修改'
+	  ,content: html
+	  ,area:["360px","160px"]
+	  ,shadeClose:true
+	  ,btn:['确定','取消']
+	},null,function(layero,index){
+	  	var url = data.id ==-1 ? "add" :"edit";
+	  	var role = $('#post_form').serializeJson();
+	  	role.id = data.id;
+	  	Ajax.Post(getAbsUrl(url),role,function(msg){
+	  		layer.close(index);
+	  		success('操作成功');
+	  		reloadTable({yn:-1});
+	  	},function(msg,rs){
+	  		error(msg);
+	  	});
+	  });
+}
+
+//删除恢复
+function doDelete(id,yn){
+	var context  = yn == 1 ?"你确定要删除吗?":"你确定要执行恢复吗?";
+	layer.confirm(context, {
+	  btn: ['确认','取消']
+	}, function(){
+		Ajax.Post(getAbsUrl("delete"),{id:id,yn:yn},function(msg){
+		  layer.msg('操作成功', {icon: 1,time:1500});
+		  reloadTable({yn:-1});
+		}
+		,function(msg,rs){alert(msg);});
+	});
+}
+</script>

@@ -1,0 +1,236 @@
+<div class="layui-fluid">
+  <div class="layui-row layui-col-space15">
+    <div class="layui-col-md12">
+      <div class="layui-card">
+      
+      	<div class="layui-card-body layui-form" style="padding-bottom: 0px;" lay-filter="layadmin-userfront-formlist">
+			<div class="layui-input-inline">
+				<input type="text" id="query_chatId" placeholder="玩家ID"
+					style="width: 150px;" class="layui-input">
+			</div>
+			<div class="layui-input-inline">
+				<button id="searchBtn" class="layui-btn" lay-filter="sreach">
+					<i class="layui-icon layui-icon-search"></i> 搜索
+				</button>
+			</div>
+		</div>
+      	
+        <div class="layui-card-body">
+          <table class="layui-hide" id="listTable" lay-filter="listTable"></table>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script type="text/html" id="optionBar">
+{{#if(hasPermission('chatmsg:reply')){ }}
+<a class="layui-btn layui-btn-xs" lay-event="reply">回复</a>
+{{#}}}
+</script>
+
+<script type="text/html" id="detailScript">
+<div style="padding:5px;padding-top:0px;padding-bottom:0px;margin-bottom:0px;">
+<table class="layui-hide" id="listTableChild" lay-filter="listTableChild"></table>
+</div>
+<form class="layui-form" id="post_form" style="padding:0px;padding-right:5px; position: inherit; bottom:0px;">
+  <div class="layui-form-item">
+    <label class="layui-form-label">回复内容:</label>
+    <div class="layui-input-block">
+     <!-- <textarea class="layui-textarea" name="content"></textarea> -->
+	<input type="text" name="detail_content"  placeholder="回复内容" class="layui-input">
+    </div>
+  </div>
+</form>
+</script>
+
+<script>
+
+var layer,table,detailHtml;
+
+function getAbsUrl(url){
+	return apiRoot()+"/api/business/chatmsg/"+url;
+}
+
+//ready
+$(function(){
+ //权限
+ checkPromision("chatmsg:view");
+ initTable();
+ detailHtml = detailScript.text;
+ //刷新
+ $("#searchBtn").on("click",function(){
+ 	reloadTable(getQueryParam());
+ });
+
+});
+
+function initUserState(id,defaultValue){
+	renderSelect($("#"+id),dict.userState,defaultValue);
+	if(layui.form){
+		layui.form.render('select');
+	}
+}
+
+//初始化table
+function initTable(){
+	layui.use(['table','layer','util'], function(){
+		layer = layui.layer;
+		table = layui.table;
+		layui.form.render(null, 'layadmin-userfront-formlist');
+		
+	  	table.render({
+	    elem: '#listTable'
+	    ,url:getAbsUrl('query')
+	    ,method:'post'
+	    ,where: getQueryParam()
+	    ,response:{
+	    	countName:"total"
+	    	,dataName:"result"
+	    }
+	    ,request: {
+	    	pageName: 'pageNo' //页码的参数名称，默认：page
+	    	,limitName: 'pageSize' //每页数据量的参数名，默认：limit
+	  	}
+	    ,cols: getCols()
+	    ,page: true
+	    ,id:"tbl_table",
+	    done:function(res, curr, count){
+	   		$('#listTable').next().find('.layui-table-body').find("table" ).find("tbody").children("tr").on('dblclick',function(){
+	           	var id = JSON.stringify($('#listTable').next().find('.layui-table-body').find("table").find("tbody").find(".layui-table-hover").data('index'));
+	           	var obj = res.result[id];
+				showDetailForm(obj);
+	        });
+	    }
+	  });
+	  
+	  //##点击事件
+	  table.on('tool(listTable)', function (obj) { //注：tool是工具条事件名，test是table原始容器的属性 lay-filter="对应的值"
+		var data = obj.data //获得当前行数据
+		,layEvent = obj.event; //获得 lay-event 对应的值
+	    if (layEvent === 'reply'){
+	    	showDetailForm(data);
+	    }
+	  });
+	});
+}
+
+//列
+function getCols(){
+	return [[
+      {field:'chatId', width:100, title: '玩家ID'}
+      ,{field:'msgCount', title: '留言数量'}
+      ,{field:'updateTime',width:160, title: '更新时间',templet:function(d){return renderDate(d.updateTime);}}
+      ,{width:160, title: '操作',toolbar:"#optionBar"}
+    ]];
+}
+
+//列
+function getChildCols(){
+	return [[
+      {field:'fromUserId',width:120, title: '发起人'}
+      ,{field:'content',title: '内容'}
+      //,{title: '内容',templet:function(d){return HtmlUtil.htmlEncode(d.content);}}
+      ,{field:'createTime',width:180, title: '创建时间',templet:function(d){return renderDate(d.createTime);}}
+    ]];
+}
+
+//刷新
+function reloadTable(data){
+	//这里以搜索为例
+	table.reload("tbl_table",{
+	  where: data
+	  ,page: {
+	    curr: 1 //重新从第 1 页开始
+	  }
+	});
+}
+
+//查询参数
+function getQueryParam(){
+	return {
+	    "chatId": $("#query_chatId").val()
+	  };
+}
+
+//显示详情
+//显示详情
+function showDetailForm(data){
+	var html =detailHtml;
+	openDlg({
+		type:1,
+	  title: '回复 ['+data.chatId+']'
+	  ,content: html
+	  ,shadeClose:true
+	  ,area:['800px','660px']
+	  ,btn:['确定','取消']
+	  },function(layero,index){
+		  table.render({
+		    elem: '#listTableChild'
+		    ,url:getAbsUrl('queryHistory')
+		    ,method:'post'
+		    ,where: {chatId:data.chatId}
+		  	,height:510
+		    ,response:{
+		    	countName:"total"
+		    	,dataName:"result"
+		    }
+		    ,request: {
+		    	pageName: 'pageNo' //页码的参数名称，默认：page
+		    	,limitName: 'pageSize' //每页数据量的参数名，默认：limit
+		  	}
+		    ,cols: getChildCols()
+		    ,page: true
+		    ,id:"tbl_table_child",
+		    done:function(res, curr, count){
+		    	if (res == null || res.result == null) {
+                    return;
+                }
+		    	//行变色
+                var that = this.elem.next();
+                res.result.forEach(function (item, index) {
+                	//客户咨询的
+                    if (item.chatId == item.fromUserId) {
+                        that.find(".layui-table-box tbody tr[data-index='" + index + "']").css("background-color", "rgb(223, 241, 230)");
+                    }
+                });
+		    }
+		  });
+	  },
+	  function(layero,index){
+		  var ctx = layero.find("input[name='detail_content']").val();
+		  Ajax.Post(getAbsUrl("reply"),{chatId:data.chatId,content:ctx},function(msg){
+		  		success('回复成功');
+		  		reloadChildTable({chatId:data.chatId});
+		  		layero.find("input[name='detail_content']").val("");
+		  	},function(msg,rs){
+		  		error(msg);
+		  	});
+	  });
+}
+
+
+//刷新
+function reloadChildTable(data){
+	//这里以搜索为例
+	table.reload("tbl_table_child",{
+	  where: data
+	  ,page: {
+	    curr: 1 //重新从第 1 页开始
+	  }
+	});
+}
+
+//删除/恢复
+function doDelete(id,yn){
+	Ajax.Post(getAbsUrl("delete"),{id:id,yn:yn},function(msg){
+  		success('操作成功');
+  		reloadTable(getQueryParam());
+  	},function(msg,rs){
+  		error(msg);
+  	});
+}
+
+</script>

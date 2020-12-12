@@ -1,0 +1,174 @@
+<div class="layui-fluid">
+  <div class="layui-row layui-col-space15">
+    <div class="layui-col-md12">
+      <div class="layui-card">
+      	<div class="layui-card-body layui-form" style="padding-bottom: 0px; width:500px; height:auto;padding-top:40px;padding-bottom:40px; margin:0 auto;" lay-filter="layadmin-userfront-formlist">
+	      <form class="layui-form" id="post_form" onsubmit="return false;">	
+	      <div class="layui-form-item" style="text-align:left;">
+			    <label class="layui-form-label" style="width:100px">操作日志</label>
+			    <div class="layui-input-block">
+			      <input type="checkbox" name="optlog" value="DEBUG" title="DEBUG">
+			      <input type="checkbox" name="optlog" value="INFO" title="INFO">
+			      <input type="checkbox" name="optlog" value="ERROR" title="ERROR">
+			    </div>
+		  </div>
+		  <div class="layui-form-item">
+			    <label class="layui-form-label" style="width:100px">USDT汇率</label>
+			    <div class="layui-input-block">
+			      <input type="text" id="exchangeRate" name="exchangeRate" lay-verify="required|number" value="" class="layui-input" style="width:200px" placeholder="请填写数字">
+			    </div>
+		  </div>
+		  <div class="layui-form-item">
+			    <label class="layui-form-label" style="width:100px">矿机下级上限</label>
+			    <div class="layui-input-block">
+			      <input type="text" id="limitChildrenCount" name="limitChildrenCount" lay-verify="required|number" value="" class="layui-input" style="width:200px" placeholder="请填写整数">
+			    </div>
+		  </div>
+		  <div class="layui-form-item">
+			    <label class="layui-form-label" style="width:100px">团队长提成比例</label>
+			    <div class="layui-input-block">
+			      <input type="text" id="teamLeaderCommissionRate" name="teamLeaderCommissionRate" lay-verify="required|number" value="" class="layui-input" style="width:200px" placeholder="请填写数字">
+			    </div>
+		  </div>
+		  <div class="layui-form-item">
+			    <label class="layui-form-label" style="width:100px">最小划转数量</label>
+			    <div class="layui-input-block">
+			      <input type="text" id="minTransferCount" name="minTransferCount" lay-verify="required|number" value="" class="layui-input" style="width:200px" placeholder="请填写数字">
+			    </div>
+		  </div>
+		  <div class="layui-form-item">
+			    <label class="layui-form-label" style="width:100px">划转手续费率</label>
+			    <div class="layui-input-block">
+			      <input type="text" id="transferRate" name="transferRate" lay-verify="required|number" value="" class="layui-input" style="width:200px" placeholder="请填写数字">
+			    </div>
+		  </div>
+		  <div class="layui-form-item">
+			    <label class="layui-form-label" style="width:100px">划转手续费下限</label>
+			    <div class="layui-input-block">
+			      <input type="text" id="minTransferAmount" name="minTransferAmount" lay-verify="required|number" value="" class="layui-input" style="width:200px" placeholder="请填写数字">
+			    </div>
+		  </div>
+		  <div class="layui-form-item">
+			    <label class="layui-form-label" style="width:100px">划转手续费上限</label>
+			    <div class="layui-input-block">
+			      <input type="text" id="maxTransferAmount" name="maxTransferAmount" lay-verify="required|number" value="" class="layui-input" style="width:200px" placeholder="请填写数字">
+			    </div>
+		  </div>
+		  <div class="layui-form-item">
+			    <label class="layui-form-label" style="width:100px">最小提现数量</label>
+			    <div class="layui-input-block">
+			      <input type="text" id="minCashOutCount" name="minCashOutCount" lay-verify="required|number" value="" class="layui-input" style="width:200px" placeholder="请填写数字">
+			    </div>
+		  </div>
+		  <div class="layui-form-item">
+			    <label class="layui-form-label" style="width:100px">提现手续费率</label>
+			    <div class="layui-input-block">
+			      <input type="text" id="cashOutRate" name="cashOutRate" lay-verify="required|number" value="" class="layui-input" style="width:200px" placeholder="请填写数字">
+			    </div>
+		  </div>
+		  <div class="layui-form-item">
+			    <label class="layui-form-label" style="width:100px">提现手续费下限</label>
+			    <div class="layui-input-block">
+			      <input type="text" id="minCashOutAmount" name="minCashOutAmount" lay-verify="required|number" value="" class="layui-input" style="width:200px" placeholder="请填写数字">
+			    </div>
+		  </div>
+		  <div class="layui-form-item">
+			    <label class="layui-form-label" style="width:100px">提现手续费上限</label>
+			    <div class="layui-input-block">
+			      <input type="text" id="maxCashOutAmount" name="maxCashOutAmount" lay-verify="required|number" value="" class="layui-input" style="width:200px" placeholder="请填写数字">
+			    </div>
+		  </div>
+		  <div class="layui-form-item">
+		    <div class="layui-input-block">
+		        <button id="updateBtn" class="layui-btn"><i class="layui-icon layui-icon-ok"></i> 保存</button>
+		    </div>
+		  </div>
+  		</form>
+		</div>
+        
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+
+checkPromision("config:view");
+var layer;
+layui.use(['layer','form'], function(){
+	layer = layui.layer;
+	layui.form.render();
+});
+
+function getAbsUrl(url){
+	return apiRoot()+"/api/system/config/"+url;
+}
+
+$(function(){
+	$("#updateBtn").on("click",function(){
+		Ajax.Post(getAbsUrl("index"),getPostData(),function(msg){
+			layer.alert('操作成功!', {icon: 1,time:2000});
+		},function(msg,rst){
+			alert(msg);
+		});
+		return false;
+	});
+	initPage();
+});
+
+function initPage(){
+	Ajax.Get(getAbsUrl("index"),null,function(msg,data){
+		$.each(data.optlog.split(","),function(i,e){
+			$("[name=optlog][value="+e+"]").attr("checked", true);
+		});
+		$("#exchangeRate").val(data.exchangeRate==null?'0.00':data.exchangeRate);
+		$("#limitChildrenCount").val(data.limitChildrenCount==null?'0':data.limitChildrenCount);
+		$("#teamLeaderCommissionRate").val(data.teamLeaderCommissionRate==null?'0.00':data.teamLeaderCommissionRate);
+		$("#minTransferCount").val(data.minTransferCount==null?'0':data.minTransferCount);
+		$("#transferRate").val(data.transferRate==null?'0.00':data.transferRate);
+		$("#minTransferAmount").val(data.minTransferAmount==null?'0':data.minTransferAmount);
+		$("#maxTransferAmount").val(data.maxTransferAmount==null?'10000':data.maxTransferAmount);
+		$("#minCashOutCount").val(data.minCashOutCount==null?'0':data.minCashOutCount);
+		$("#cashOutRate").val(data.cashOutRate==null?'0.00':data.cashOutRate);
+		$("#minCashOutAmount").val(data.minCashOutAmount==null?'0':data.minCashOutAmount);
+		$("#maxCashOutAmount").val(data.maxCashOutAmount==null?'10000':data.maxCashOutAmount);
+		layui.form.render();
+	},function(msg){
+		alert(msg);
+	});
+}
+
+function getPostData(){
+  	var optlogs = new Array();
+	$("input:checkbox[name='optlog']:checked").each(function(i){
+                optlogs[i] = $(this).val();
+            });
+	var exchangeRate = $("#exchangeRate").val();
+	var limitChildrenCount = $("#limitChildrenCount").val();
+	var teamLeaderCommissionRate = $("#teamLeaderCommissionRate").val();
+	var minTransferCount = $("#minTransferCount").val();
+	var transferRate = $("#transferRate").val();
+	var minTransferAmount = $("#minTransferAmount").val();
+	var maxTransferAmount = $("#maxTransferAmount").val();
+	var minCashOutCount = $("#minCashOutCount").val();
+	var cashOutRate = $("#cashOutRate").val();
+	var minCashOutAmount = $("#minCashOutAmount").val();
+	var maxCashOutAmount = $("#maxCashOutAmount").val();
+	return {
+		optlog:optlogs.join(","),
+		exchangeRate:exchangeRate==null?'0.00':exchangeRate,
+		limitChildrenCount:limitChildrenCount==null?'0':limitChildrenCount,
+		teamLeaderCommissionRate:teamLeaderCommissionRate==null?'0.00':teamLeaderCommissionRate,
+		minTransferCount:minTransferCount==null?'0':minTransferCount,
+		transferRate:transferRate==null?'0.00':transferRate,
+		minTransferAmount:minTransferAmount==null?'0':minTransferAmount,
+		maxTransferAmount:maxTransferAmount==null?'10000':maxTransferAmount,
+		minCashOutCount:minCashOutCount==null?'0':minCashOutCount,
+		cashOutRate:cashOutRate==null?'0.00':cashOutRate,
+		minCashOutAmount:minCashOutAmount==null?'0':minCashOutAmount,
+		maxCashOutAmount:maxCashOutAmount==null?'10000':maxCashOutAmount
+	};
+} 
+
+</script>

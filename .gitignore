@@ -1,0 +1,16 @@
+**/.metadata
+*.class
+**/target
+**/bin
+
+*.war
+*.swp
+*.springBeans
+*.classpatch
+*.factorypath
+*.project
+*.classpath
+*.settings
+*.log
+*/.apt_generated
+*/.apt_generated_tests

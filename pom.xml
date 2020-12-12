@@ -1,0 +1,139 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>com.echain</groupId>
+	<artifactId>echain</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<packaging>pom</packaging>
+
+	<name>echain</name>
+	<url>http://maven.apache.org</url>
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<jdk.version>1.8</jdk.version>
+		<project.version>0.0.1-SNAPSHOT</project.version>
+	</properties>
+
+	<dependencyManagement>
+		<dependencies>
+			
+			<dependency>
+				<groupId>com.echain</groupId>
+				<artifactId>echain-common</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.echain</groupId>
+				<artifactId>echain-domain</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.echain</groupId>
+				<artifactId>echain-dao</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.echain</groupId>
+				<artifactId>echain-service</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-dependencies</artifactId>
+				<version>2.3.1.RELEASE</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+
+			<dependency>
+				<groupId>com.baomidou</groupId>
+				<artifactId>mybatis-plus-boot-starter</artifactId>
+				<version>3.3.2</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.apache.shiro</groupId>
+				<artifactId>shiro-spring-boot-web-starter</artifactId>
+				<version>1.5.3</version>
+			</dependency>
+
+			<dependency>
+				<groupId>com.dyuproject.protostuff</groupId>
+				<artifactId>protostuff-core</artifactId>
+				<version>1.1.6</version>
+			</dependency>
+
+			<dependency>
+				<groupId>com.dyuproject.protostuff</groupId>
+				<artifactId>protostuff-runtime</artifactId>
+				<version>1.1.6</version>
+			</dependency>
+			
+			<dependency>
+			    <groupId>com.github.whvcse</groupId>
+			    <artifactId>easy-captcha</artifactId>
+			    <version>1.6.2</version>
+			</dependency>
+			
+			<dependency>
+			    <groupId>commons-beanutils</groupId>
+			    <artifactId>commons-beanutils</artifactId>
+			    <version>1.9.4</version>
+			</dependency>
+			
+			<dependency>
+	          <groupId>com.google.guava</groupId>
+	          <artifactId>guava</artifactId>
+	          <version>30.0-jre</version>
+      		</dependency>
+      		
+      		<dependency>
+			    <groupId>com.github.ulisesbocchio</groupId>
+			    <artifactId>jasypt-spring-boot-starter</artifactId>
+			    <version>3.0.3</version>
+			</dependency>
+		</dependencies>
+
+	</dependencyManagement>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<source>${jdk.version}</source>
+					<target>${jdk.version}</target>
+					<encoding>${project.build.sourceEncoding}</encoding>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+	
+	<repositories>  
+        <repository>  
+            <id>alimaven</id>  
+            <name>aliyun maven</name>  
+            <url>http://maven.aliyun.com/nexus/content/groups/public/</url>  
+            <releases>  
+                <enabled>true</enabled>  
+            </releases>  
+            <snapshots>  
+                <enabled>false</enabled>  
+            </snapshots>  
+        </repository>  
+	</repositories>  
+	 
+	<modules>
+		<module>echain-common</module>
+		<module>echain-domain</module>
+		<module>echain-dao</module>
+		<module>echain-service</module>
+		<module>echain-web</module>
+		<module>echain-admin</module>
+	</modules>
+</project>

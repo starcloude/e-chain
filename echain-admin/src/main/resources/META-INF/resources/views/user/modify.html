@@ -1,0 +1,99 @@
+<div class="layui-fluid">
+  <div class="layui-row layui-col-space15">
+    <div class="layui-col-md12">
+      <div class="layui-card">
+      
+      	<div class="layui-card-body">
+      	个人信息
+      	</div>
+      	<div class="layui-card-body layui-form">
+      	
+	    <div class="layui-form-item">
+	    <label class="layui-form-label">账号</label>
+	    <div class="layui-input-inline">
+	    <script type="text/html" template>
+	      <input type="text" maxlength="20" readonly="readonly" disabled="disabled"  placeholder="账号" value="{{layui.setter.localUser().no}}" autocomplete="off" class="layui-input"/>
+	      </script>
+	    </div>
+	  </div>
+	  
+	  <div class="layui-form-item">
+	    <label class="layui-form-label">姓名</label>
+	    <div class="layui-input-inline">
+	    	<script type="text/html" template>
+		      <input type="text" id="detail_name" maxlength="10" placeholder="姓名"  value="{{layui.setter.localUser().name}}" autocomplete="off" class="layui-input"/>
+	    	</script>
+	    </div>
+	  </div>
+	<!-- <script type="text/html"  template lay-url="/api/session.json?v={{ layui.admin.v }}"></script> -->
+	  <div class="layui-form-item">
+	    <label class="layui-form-label">密码</label>
+	    <div class="layui-input-inline">
+	      <input type="password" id="detail_pwd" maxlength="30" placeholder="密码" autocomplete="new-password" class="layui-input">
+	    </div>
+	  </div>
+	
+	  <div class="layui-form-item">
+	    <label class="layui-form-label">确认密码</label>
+	    <div class="layui-input-inline">
+	      <input type="password" id="detail_pwd2" maxlength="30" placeholder="确认密码" autocomplete="new-password" class="layui-input">
+	    </div>
+	  </div>
+	  <div class="layui-input-inline">
+	    <div class="layui-input-block">
+	      <button id="updateBtn" class="layui-btn"><i class="layui-icon layui-icon-ok"></i> 保存</button>
+	    </div>
+	  </div>
+	  
+		</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  
+var layer;
+  
+layui.use(['layer'], function(){
+	  layer = layui.layer;
+});
+
+$("#updateBtn").on("click",function(){
+	
+	var name = $("#detail_name").val();
+	
+	var pwd1 = $("#detail_pwd").val();
+	
+	var pwd2 = $("#detail_pwd2").val();
+	
+	if(name == ""){
+		error("姓名不允许为空!");
+		return;
+	}
+	
+	if(pwd1 != "" && pwd1!=pwd2){
+		error("两次输入的密码不一致!");
+		return;
+	}
+	var data = {name:name,pwd1:pwd1,pwd2:pwd2};
+	
+	Ajax.Post("/api/system/user/modify",data,function(msg){
+		success('操作成功!',function(index,layero){
+			layer.close(index);
+			if(pwd1 != ""){
+				layui.admin.events.logout();
+			}
+			var user = layui.setter.localUser();
+			if(user.name != name){
+				user.name=name;
+				layui.setter.localUser(user);
+				window.location.reload();
+			}
+		});
+	},function(msg,rst){
+		error(msg);
+	});
+	return false;
+});
+</script>

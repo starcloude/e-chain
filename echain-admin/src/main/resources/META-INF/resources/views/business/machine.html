@@ -1,0 +1,284 @@
+<div class="layui-fluid">
+  <div class="layui-row layui-col-space15">
+    <div class="layui-col-md12">
+      <div class="layui-card">
+      
+      	<div class="layui-card-body layui-form" style="padding-bottom: 0px;" lay-filter="layadmin-userfront-formlist">
+			<div class="layui-input-inline">
+				<input type="text" id="query_id" placeholder="机器ID"
+					style="width: 150px;" class="layui-input">
+			</div>
+			<div class="layui-input-inline">
+				<input type="text" id="query_code" placeholder="机器型号"
+					style="width: 200px;" class="layui-input">
+			</div>
+			<div class="layui-input-inline">
+				<button id="searchBtn" class="layui-btn" lay-filter="sreach">
+					<i class="layui-icon layui-icon-search"></i> 搜索
+				</button>
+		        <button id="addBtn" class="layui-btn"  lay-filter="add">
+		        	<i class="layui-icon layui-icon-add-1"></i> 添加
+		        </button>
+			</div>
+		</div>
+      	
+        <div class="layui-card-body">
+          <table class="layui-hide" id="listTable" lay-filter="listTable"></table>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script type="text/html" id="optionBar">
+{{#if(d.yn==1 && hasPermission('machine:delete')){ }}
+<a class="layui-btn layui-btn-xs" lay-event="recover">恢复</a>
+{{#} if(d.yn == 0 && hasPermission('machine:delete')){}}
+<a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="delete">删除</a>
+{{#} if(hasPermission('machine:edit')){}}
+<a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
+{{#}}}
+</script>
+
+<script type="text/html" id="detailScript">
+<form class="layui-form" id="post_form" style="padding:15px;padding-bottom:0px;">
+  <div class="layui-form-item">
+    <label class="layui-form-label">型号</label>
+    <div class="layui-input-block">
+      <input type="text" value="{{code}}" maxlength="30" name="code" class="layui-input">
+    </div>
+  </div>
+  <div class="layui-form-item">
+    <label class="layui-form-label">价格</label>
+    <div class="layui-input-block">
+      <input type="text" name="price" maxlength="15" placeholder="价格" value="{{price}}" autocomplete="off" class="layui-input">
+    </div>
+  </div>
+  <div class="layui-form-item">
+    <label class="layui-form-label">单日收益</label>
+    <div class="layui-input-block">
+      <input type="text" name="profit" maxlength="10" placeholder="单日收益" value="{{profit}}" autocomplete="off" class="layui-input">
+    </div>
+  </div>
+  <div class="layui-form-item">
+    <label class="layui-form-label">运行天数</label>
+    <div class="layui-input-block">
+      <input type="text" name="runningDays" maxlength="8" placeholder="运行天数" value="{{runningDays}}" autocomplete="off" class="layui-input">
+    </div>
+  </div>
+
+  <div class="layui-form-item">
+	<label class="layui-form-label">凭证</label>
+	<div class="layui-input-block">
+		<button type="button" class="layui-btn" id="uploadImg">上传图片</button>
+		 <div class="layui-upload-list">
+    		<img class="layui-upload-img" id="imgPreview" width="200" height="140">
+	  	</div>
+	</div>
+  </div> 
+</form>
+</script>
+
+<script>
+
+var layer,table,detailHtml,upload;
+
+function getAbsUrl(url){
+	return apiRoot()+"/api/business/machine/"+url;
+}
+
+//ready
+$(function(){
+ //权限
+ checkPromision("machine:view");
+
+ initTable();
+ detailHtml = detailScript.text;
+
+ //没权限,就隐藏
+ if(!hasPermission('machine:edit')){
+  	$("#addBtn").hide();
+ }else{
+  //添加
+  $("#addBtn").on("click",function(){
+	  showDetailForm({id:0});
+  });
+ }
+ 
+ //刷新
+ $("#searchBtn").on("click",function(){
+ 	reloadTable(getQueryParam());
+ });
+
+});
+
+function initUserState(id,defaultValue){
+	renderSelect($("#"+id),dict.userState,defaultValue);
+	if(layui.form){
+		layui.form.render('select');
+	}
+}
+
+//初始化table
+function initTable(){
+	layui.use(['table','layer','upload'], function(){
+		layer = layui.layer;
+		table = layui.table;
+		upload = layui.upload;
+		layui.form.render(null, 'layadmin-userfront-formlist');
+	  	table.render({
+	    elem: '#listTable'
+	    ,url:getAbsUrl('query')
+	    ,method:'post'
+	    ,where: getQueryParam()
+	    ,response:{
+	    	countName:"total"
+	    	,dataName:"result"
+	    }
+	    ,request: {
+	    	pageName: 'pageNo' //页码的参数名称，默认：page
+	    	,limitName: 'pageSize' //每页数据量的参数名，默认：limit
+	  	}
+	    ,cols: getCols()
+	    ,page: true
+	    ,id:"tbl_table",
+	    done:function(res, curr, count){
+	   		$('#listTable').next().find('.layui-table-body').find("table" ).find("tbody").children("tr").on('dblclick',function(){
+	           	var id = JSON.stringify($('#listTable').next().find('.layui-table-body').find("table").find("tbody").find(".layui-table-hover").data('index'));
+	           	var obj = res.result[id];
+				showDetailForm(obj);
+	        });
+	    }
+	  });
+	  
+	  //##点击事件
+	  table.on('tool(listTable)', function (obj) { //注：tool是工具条事件名，test是table原始容器的属性 lay-filter="对应的值"
+		var data = obj.data //获得当前行数据
+		,layEvent = obj.event; //获得 lay-event 对应的值
+	    if (layEvent === 'recover'){
+	   		doDelete(data.id,0);
+	    }else if (layEvent === 'delete'){
+	    	doDelete(data.id,1);
+	    }else if (layEvent === 'edit'){
+	    	showDetailForm(data);
+	    }
+	  });
+	});
+}
+
+//列
+function getCols(){
+	return [[
+      {field:'id', width:100, title: '机器ID'}
+      ,{field:'code', title: '型号'}
+      ,{field:'price',width:130,title: '价格'}
+      ,{field:'profit',width:120,title: '单日收益'}
+      ,{field:'runningDays',width:120,title: '运行天数'}
+      //,{ width:200, title: '状态',templet:function(d){return renderStatus(d.state,dict.userState);}}
+      ,{field:'createTime',width:160, title: '创建时间',templet:function(d){return renderDate(d.createTime);}}
+      ,{field:'createPin',width:160, title: '创建人'}
+      ,{width:100, title: '是否有效',templet:function(d){return renderYn(d.yn);}}
+      ,{width:180, title: '操作',toolbar:"#optionBar"}
+    ]];
+}
+
+//刷新
+function reloadTable(data){
+	//这里以搜索为例
+	table.reload("tbl_table",{
+	  where: data
+	  ,page: {
+	    curr: 1 //重新从第 1 页开始
+	  }
+	});
+}
+
+//查询参数
+function getQueryParam(){
+	return {
+	    "code": $("#query_code").val()
+	    ,"id": $("#query_id").val()
+	  };
+}
+
+//显示详情
+//显示详情
+function showDetailForm(data){
+	var html =detailHtml;
+	html = renderTemplate(html,data);
+	var uploadLoadingIndex,img;
+	openDlg({
+		type:1,
+	  title: '修改'
+	  ,content: html
+	  ,shadeClose:true
+	  ,area:['400px','530px']
+	  ,btn:['确定','取消']
+	  },function(layero,index){
+		  //如果有图片,显示图片
+	  	if(data.icon!=null && data.icon!=""){
+	  		$('#imgPreview').attr('src', "/api/file/d/"+data.icon);
+	  	}
+	  	
+		  upload.render({
+              elem: '#uploadImg'
+              , url: '/api/file/u'
+              , exts: 'jpg|gif|png|bmp'
+              , size: 2048
+              , before: function (obj) {
+                  //预读本地文件示例，不支持ie8
+                  obj.preview(function (index, file, result) {
+                      $('#imgPreview').attr('src', result); //图片链接（base64）
+                  });
+                  uploadLoadingIndex = layer.load(0, {shade: true, shade: 0.1});
+              }
+              , done: function (res) {
+                  layer.close(uploadLoadingIndex);
+                  if (!res.success) {
+                      if (res.msg.indexOf("Maximum upload size exceeded") >= 0) {
+                          error("文件过大,不允许上传!");
+                      } else {
+                          error(res.msg);
+                      }
+                  } else {
+                      //$("#uploadDiv").parent().html("<img src='"+res.result+"'>");
+                      success("上传成功!");
+                      img = res.result;
+                  }
+              }
+          });
+	  },
+	  function(layero,index){
+		  	var url = getAbsUrl("edit");
+		  	var formData = $('#post_form').serializeJson();
+		  	formData.id = data.id;
+		  	img = img||data.icon;
+			if(!formData.code || formData.code=="" || formData.code.length>30){
+				error("型号不合法!");
+				return;
+			}
+			formData.icon = img;
+		  	Ajax.Post(url,formData,function(msg){
+		  		layer.close(index);
+		  		success('操作成功');
+		  		reloadTable(getQueryParam());
+		  	},function(msg,rs){
+		  		error(msg);
+		  	});
+		  }
+	);
+}
+
+//删除/恢复
+function doDelete(id,yn){
+	Ajax.Post(getAbsUrl("delete"),{id:id,yn:yn},function(msg){
+  		success('操作成功');
+  		reloadTable(getQueryParam());
+  	},function(msg,rs){
+  		error(msg);
+  	});
+}
+
+</script>

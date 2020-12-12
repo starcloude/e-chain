@@ -1,0 +1,166 @@
+<div class="layui-fluid">
+  <div class="layui-row layui-col-space15">
+    <div class="layui-col-md12">
+      <div class="layui-card">
+      
+      	<div class="layui-card-body layui-form" style="padding-bottom: 0px;" lay-filter="layadmin-userfront-formlist">
+			<div class="layui-input-inline">
+				<input type="text" id="query_id" placeholder="玩家ID"
+					style="width: 150px;" class="layui-input">
+			</div>
+			<div class="layui-input-inline">
+				<button id="searchBtn" class="layui-btn" lay-filter="sreach">
+					<i class="layui-icon layui-icon-search"></i> 搜索
+				</button>
+			</div>
+		</div>
+      	
+        <div class="layui-card-body">
+          <table class="layui-hide" id="listTable" lay-filter="listTable"></table>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="text/html" id="optionBar">
+{{#if(hasPermission('vuser_wallet:resetTradePwd')){}}
+<a class="layui-btn layui-btn-xs" lay-event="resetTradePwd">重置交易密码</a>
+{{#}}}
+</script>
+
+<script type="text/html" id="resetTradePwdHtml">
+<form class="layui-form" id="post_form" style="padding:15px;">
+  <div class="layui-form-item">
+    <label class="layui-form-label">用户ID</label>
+    <div class="layui-input-block">
+      <input type="text" value="{{id}}" disabled class="layui-input">
+    </div>
+  </div>
+  <div class="layui-form-item">
+    <label class="layui-form-label">交易密码</label>
+    <div class="layui-input-block">
+      <input type="text" name="tradePwd" maxlength="15" value="" class="layui-input">
+    </div>
+  </div>
+</form>
+</script>
+
+<script>
+
+//权限
+checkPromision("vuser_wallet:view");
+
+function getAbsUrl(url){
+	return apiRoot()+"/api/business/user/wallet/"+url;
+}
+var layer,table,resetTradePwdHTMLValue;
+
+$(function(){initTable();})
+
+//初始化table
+function initTable(){
+	layui.use(['table','layer'], function(){
+		layer = layui.layer;
+		table = layui.table;
+		layui.form.render(null, 'layadmin-userfront-formlist');
+	  	table.render({
+	    elem: '#listTable'
+	    ,url:getAbsUrl('query')
+	    ,method:'post'
+	    ,where: getQueryParam()
+	    ,response:{
+	    	countName:"total"
+	    	,dataName:"result"
+	    }
+	    ,request: {
+	    	pageName: 'pageNo' //页码的参数名称，默认：page
+	    	,limitName: 'pageSize' //每页数据量的参数名，默认：limit
+	  	}
+	    ,cols: getCols()
+	    ,page: true
+	    ,id:"tbl_table",
+	    done:function(res, curr, count){
+	   		$('#listTable').next().find('.layui-table-body').find("table" ).find("tbody").children("tr").on('dblclick',function(){
+	           	var id = JSON.stringify($('#listTable').next().find('.layui-table-body').find("table").find("tbody").find(".layui-table-hover").data('index'));
+	           	var obj = res.result[id];
+	           	//if(obj.state==0){showApproveForm(obj);}
+	        });
+	    }
+	  });
+	  
+	  //##点击事件
+	  table.on('tool(listTable)', function (obj) { //注：tool是工具条事件名，test是table原始容器的属性 lay-filter="对应的值"
+		var data = obj.data //获得当前行数据
+		,layEvent = obj.event; //获得 lay-event 对应的值
+	    if (layEvent === 'resetTradePwd'){
+	    	resetTradePwd(data);
+	    }
+	  });
+	});
+}
+
+//列
+function getCols(){
+	return [[
+      {field:'id', title: '用户ID'}
+      ,{field:'totalAmount',title: '总金额'}
+      ,{field:'usableAmount',title: '可用'}
+      ,{field:'frozenAmount',title: '冻结'}
+      ,{title: '操作',toolbar:"#optionBar"}
+    ]];
+}
+
+//刷新
+layui.jquery("#searchBtn").on("click",function(){
+	reloadTable(getQueryParam());
+});
+
+//刷新
+function reloadTable(data){
+	//这里以搜索为例
+	table.reload("tbl_table",{
+	  where: data
+	  ,page: {
+	    curr: 1 //重新从第 1 页开始
+	  }
+	});
+}
+
+function resetTradePwd(data){
+	var html =  renderTemplate(getHtmlWithCache(resetTradePwdHTMLValue,resetTradePwdHtml),data);
+	openDlg({
+	  title: '充值交易密码'
+	  ,content: html
+	  ,shadeClose:true
+	  ,area:['400px','230px']
+	  ,btn:['确定','取消']
+	  },null,
+	  function(layero,index){
+		  var tradePassword = layero.find("input[name='tradePwd']").val();
+		  if(tradePassword == ""){
+		  	error("请输入交易密码!");
+		  	return;
+		  }
+		  var postData = {id:data.id,tradePassword:tradePassword};
+		  Ajax.Post(getAbsUrl('resetTradePwd'),postData,function(msg){
+	  		layer.close(index);
+	  		success('操作成功');
+		  },function(msg,rs){
+		  		error(msg);
+		  });
+		}
+	);
+	
+	
+	//Ajax.Post(,)
+}
+
+//查询参数
+function getQueryParam(){
+	return {
+	    "id": $("#query_id").val()
+	  };
+}
+</script>

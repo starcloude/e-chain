@@ -1,0 +1,91 @@
+<div class="layui-fluid">
+  <div class="layui-row layui-col-space15">
+    <div class="layui-col-md12">
+      <div class="layui-card">
+        <div class="layui-card-body" style="width:500px;padding-top:80px; margin:0 auto;">
+        <form class="layui-form" id="worker_form" onsubmit="return false;">
+          <table class="layui-hide" id="listTable" lay-filter="listTable"></table>
+          <div class="layui-form-item">
+		    <div class="layui-input-block" style="margin-top:20px; text-align:right;">
+		      <button id="saveBtn" class="layui-btn"><i class="layui-icon layui-icon-ok"></i> 保存</button>
+		    </div>
+		  </div>
+		 </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="text/html" id="userBar">
+	<input type="checkbox" name="{{d.code}}" {{#if(d.turn=='on'){ }} checked="checked" {{#}}} lay-skin="switch" lay-text="ON|OFF">
+</script>
+
+<script>
+checkPromision("config:worker:view");
+var layer;
+var table;
+var form;
+
+function getAbsUrl(url){
+		return apiRoot()+"/api/system/config/worker/"+url;
+	} 
+layui.use(['table','layer','form'], function(){
+	  layer = layui.layer;
+	  table = layui.table;
+	  form = layui.form;
+	  	table.render({
+	    elem: '#listTable'
+	    ,url:getAbsUrl('index')
+	    ,method:'get'
+	    ,response:{
+	    	countName:"total"
+	    	,dataName:"result"
+	    }
+	    ,cols: [
+	    	[
+	      {title: 'worker名称',templet:function(d){return d.name;}}
+	      ,{width:120,title: '状态',toolbar:"#userBar"}
+	    ]
+	    	]
+	    ,page: false
+	    ,id:"tbl_table"
+	  });
+});
+
+//刷新
+function reloadTable(data){
+	//这里以搜索为例
+	table.reload("tbl_table",{
+	  where: data
+	  ,page: {
+	    curr: 1 //重新从第 1 页开始
+	  }
+	});
+}
+
+hasPermission('config:worker:edit',function(){
+	$("#saveBtn").on("click",function(){
+		Ajax.Post(getAbsUrl("index"),getPostData(),function(msg){
+			layer.alert('操作成功!', {icon: 1,time:2000});
+		},function(msg,rst){
+			error(msg);
+		});
+		return false;
+	});
+	
+},function(){
+	$("#saveBtn").hide();
+	
+});
+
+function getPostData(){
+	var param = {};
+	$("#worker_form").find("input[type='checkbox']").each(function(i,e){
+		e = $(e);
+		param[e.attr("name")] = e.is(":checked")?"on":"off";
+	});
+	return param;
+	//return $("#worker_form").serializeJson();
+}
+</script>

@@ -1,0 +1,140 @@
+<div class="layui-fluid">
+  <div class="layui-row layui-col-space15">
+    <div class="layui-col-md12">
+      <div class="layui-card">
+      
+      	<div class="layui-card-body layui-form" style="padding-bottom: 0px;" lay-filter="layadmin-userfront-formlist">
+			<div class="layui-input-inline">
+				<select id="query_level">
+					<option value="">全部(级别)</option>
+					<option value="DEBUG">DEBUG</option>
+					<option value="INFO">INFO</option>
+					<option value="ERROR">ERROR</option>
+				</select>
+			</div>
+			<div class="layui-input-inline">
+				<input type="text" id="query_node" placeholder="节点"
+					style="width: 150px;" class="layui-input">
+			</div>
+			
+			<div class="layui-input-inline">
+				 <input type="text" class="layui-input" id="query_startTime" placeholder="开始时间">
+			</div>
+				 -
+			<div class="layui-input-inline">
+				 <input type="text" class="layui-input" id="query_startTimeEnd" placeholder="截止时间">
+			</div>
+			
+			<div class="layui-input-inline">
+				<input type="text" id="query_pin" placeholder="操作人"
+					style="width: 200px;" class="layui-input">
+			</div>
+			
+			<div class="layui-input-inline">
+				<button id="searchBtn" class="layui-btn" lay-filter="sreach">
+					<i class="layui-icon layui-icon-search"></i> 搜索
+				</button>
+			</div>
+		</div>
+      	
+        <div class="layui-card-body">
+          <table class="layui-hide" id="listTable"></table>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+
+checkPromision("log:view");
+
+function getAbsUrl(url){
+	return apiRoot()+"/api/system/log/"+url;
+}
+  
+var layer,laydate;
+var table;
+var startTm;
+var detailTpl = "<b>操作人:</b>{{createPin}} <b>操作时间:</b>{{optTime}} <b>IP:</b> {{ip}}<br><b>操作内容:</b><pre>{{memo}}</pre>";
+layui.use(['laydate','table','layer'], function(){
+ 	laydate = layui.laydate;
+ 	layer = layui.layer;
+	table = layui.table;
+ 	startTm = laydate.render({
+       elem: '#query_startTime',
+       type:'datetime',
+       value: new Date(new Date(new Date().toLocaleDateString()).getTime())
+   });
+   laydate.render({
+       elem: '#query_startTimeEnd',
+       type:'datetime'
+   });
+   
+   initTable();
+ });
+  
+ function initTable(){
+  	table.render({
+    elem: '#listTable'
+    ,url:getAbsUrl('query')
+    ,method:'post'
+    ,where: getQueryParam()
+    ,response:{
+    	countName:"total"
+    	,dataName:"result"
+    }
+    ,request: {
+    	pageName: 'pageNo' //页码的参数名称，默认：page
+    	,limitName: 'pageSize' //每页数据量的参数名，默认：limit
+  	}
+    ,cols: [[
+      {field:'level', width:100, title: '级别'}
+      ,{field:'node', width:200, title: '节点'}
+      ,{field:'createPin', width:130, title: '操作人'}
+      ,{field:'ip', width:130, title: 'IP地址'}
+      ,{field:'createTime',width:160, title: '操作时间',templet:function(d){return renderDate(d.createTime);}}
+      ,{field:'memo', minWidth:100, title: '内容'}
+    ]]
+    ,page: true
+    ,id:"tbl_table",
+    done:function(res, curr, count){
+   		$('#listTable').next().find('.layui-table-body').find("table" ).find("tbody").children("tr").on('dblclick',function(){
+           	var id = JSON.stringify($('#listTable').next().find('.layui-table-body').find("table").find("tbody").find(".layui-table-hover").data('index'));
+           	var obj = res.result[id];
+           	obj["optTime"] = layui.util.toDateString(obj["createTime"], 'yyyy-MM-dd HH:mm:ss');
+			var html = renderTemplate(detailTpl,obj);
+			layer.open({title:obj["node"],shadeClose:true,content:html,area:["600px","400px;"]});
+        });
+    }
+  });
+ }
+
+//刷新
+layui.jquery("#searchBtn").on("click",function(){
+	reloadTable(getQueryParam());
+});
+
+//刷新
+function reloadTable(data){
+	//这里以搜索为例
+	table.reload("tbl_table",{
+	  where: data
+	  ,page: {
+	    curr: 1 //重新从第 1 页开始
+	  }
+	});
+}
+
+//查询参数
+function getQueryParam(){
+	return {
+	    "level": $("#query_level").val()
+	    ,"createPin": $("#query_pin").val().replace(/(^\s*)|(\s*$)/g,"")
+	    ,"node": $("#query_node").val().replace(/(^\s*)|(\s*$)/g,"")
+		,"createTime": $("#query_startTime").val()
+	    ,"createTimeEnd": $("#query_startTimeEnd").val()
+	  };
+}
+</script>

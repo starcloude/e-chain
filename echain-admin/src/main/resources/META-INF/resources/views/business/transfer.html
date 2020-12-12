@@ -1,0 +1,148 @@
+<div class="layui-fluid">
+  <div class="layui-row layui-col-space15">
+    <div class="layui-col-md12">
+      <div class="layui-card">
+      
+      	<div class="layui-card-body layui-form" style="padding-bottom: 0px;" lay-filter="layadmin-userfront-formlist">
+			<div class="layui-input-inline">
+				<input type="text" id="query_id" placeholder="编号"
+					style="width: 150px;" class="layui-input">
+			</div>
+			<div class="layui-input-inline">
+				<input type="text" id="query_userid" placeholder="玩家ID"
+					style="width: 150px;" class="layui-input">
+			</div>
+			
+			<div class="layui-input-inline">
+				<input type="text" id="query_toUserid" placeholder="收款人ID"
+					style="width: 150px;" class="layui-input">
+			</div>
+			<div class="layui-input-inline">
+				 <input type="text" class="layui-input" id="query_startTime" placeholder="开始时间">
+			</div>
+				 -
+			<div class="layui-input-inline">
+				 <input type="text" class="layui-input" id="query_startTimeEnd" placeholder="截止时间">
+			</div>
+			<div class="layui-input-inline">
+				<button id="searchBtn" class="layui-btn" lay-filter="sreach">
+					<i class="layui-icon layui-icon-search"></i> 搜索
+				</button>
+			</div>
+		</div>
+      	
+        <div class="layui-card-body">
+          <table class="layui-hide" id="listTable" lay-filter="listTable"></table>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+
+//权限
+checkPromision("transfer:view");
+
+function getAbsUrl(url){
+	return apiRoot()+"/api/business/transfer/"+url;
+}
+var layer,table,dict,laydate;
+
+$(function(){
+	layui.use(['laydate'], function(){
+		laydate = layui.laydate;
+		laydate.render({
+	        elem: '#query_startTime',
+	        type:'datetime'
+	    });
+	    laydate.render({
+	        elem: '#query_startTimeEnd',
+	        type:'datetime'
+	    });
+		
+	});
+	
+ initTable();
+});
+
+
+function initState(id,defaultValue){
+	renderSelect($("#"+id),dict.question,defaultValue);
+	if(layui.form){
+		layui.form.render('select');
+	}
+}
+
+
+//初始化table
+function initTable(){
+	layui.use(['table','layer'], function(){
+		layer = layui.layer;
+		table = layui.table;
+		layui.form.render(null, 'layadmin-userfront-formlist');
+	  	table.render({
+	    elem: '#listTable'
+	    ,url:getAbsUrl('query')
+	    ,method:'post'
+	    ,where: getQueryParam()
+	    ,response:{
+	    	countName:"total"
+	    	,dataName:"result"
+	    }
+	    ,request: {
+	    	pageName: 'pageNo' //页码的参数名称，默认：page
+	    	,limitName: 'pageSize' //每页数据量的参数名，默认：limit
+	  	}
+	    ,cols: getCols()
+	    ,page: true
+	    ,id:"tbl_table"
+	  });
+
+	});
+}
+
+//列
+function getCols(){
+	return [[
+      {field:'id', width:100, title: '编号'}
+      ,{field:'userId',width:120,title: '用户ID'}
+      ,{field:'createPin',width:200,title: '用户账号'}
+      ,{field:'amount',width:100,title: '金额'}
+      ,{field:'fee',width:100,title: '手续费'}
+      ,{field:'memo',title: '备注'}
+      ,{field:'toUserId',width:120,title: '收款人'}
+      ,{field:'toAccount',width:200,title: '收款账号'}
+      ,{field:'createTime',width:180, title: '转账时间',templet:function(d){return renderDate(d.createTime);}}
+    ]];
+}
+
+//刷新
+layui.jquery("#searchBtn").on("click",function(){
+	reloadTable(getQueryParam());
+});
+
+//刷新
+function reloadTable(data){
+	//这里以搜索为例
+	table.reload("tbl_table",{
+	  where: data
+	  ,page: {
+	    curr: 1 //重新从第 1 页开始
+	  }
+	});
+}
+
+//查询参数
+function getQueryParam(){
+	return {
+	    "id": $("#query_id").val()
+	    ,"userId": $("#query_userid").val()
+	    ,"toUserId": $("#query_toUserid").val()
+		,"createTime": $("#query_startTime").val()
+	    ,"createTimeEnd": $("#query_startTimeEnd").val()
+	  };
+}
+
+</script>

@@ -1,0 +1,86 @@
+<div class="layui-fluid">
+  <div class="layui-row layui-col-space15">
+    <div class="layui-col-md12">
+      <div class="layui-card">
+      	<div class="layui-card-body layui-form" style="padding-bottom: 0px; width:500px; height:auto;padding-top:40px;padding-bottom:40px; margin:0 auto;" lay-filter="layadmin-userfront-formlist">
+	      <form class="layui-form" id="post_form" onsubmit="return false;">	
+		  <div class="layui-form-item">
+			    <label class="layui-form-label" style="width:100px">ERC20钱包</label>
+			    <div class="layui-input-block">
+			      <textarea class="layui-textarea" id="erc20" name="erc20" placeholder="多个地址请以,隔开"></textarea>
+			    </div>
+		  </div>
+		  <div class="layui-form-item">
+			    <label class="layui-form-label" style="width:100px">TRC20钱包</label>
+			    <div class="layui-input-block">
+			      <textarea class="layui-textarea" id="trc20" name="trc20" placeholder="多个地址请以,隔开"></textarea>
+			    </div>
+		  </div>
+		  <div class="layui-form-item">
+			    <label class="layui-form-label" style="width:100px">OMNI钱包</label>
+			    <div class="layui-input-block">
+			      <textarea class="layui-textarea" id="omni" name="omni" placeholder="多个地址请以,隔开"></textarea>
+			    </div>
+		  </div>
+		  <div class="layui-form-item">
+		    <div class="layui-input-block">
+		        <button id="updateBtn" class="layui-btn"><i class="layui-icon layui-icon-ok"></i> 保存</button>
+		    </div>
+		  </div>
+  		</form>
+		</div>
+        
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+
+checkPromision("config:editWallet");
+var layer;
+layui.use(['layer','form'], function(){
+	layer = layui.layer;
+	layui.form.render();
+});
+
+function getAbsUrl(url){
+	return apiRoot()+"/api/system/config/"+url;
+}
+
+$(function(){
+	$("#updateBtn").on("click",function(){
+		Ajax.Post(getAbsUrl("adminWallet"),getPostData(),function(msg){
+			layer.alert('操作成功!', {icon: 1,time:2000});
+		},function(msg,rst){
+			alert(msg);
+		});
+		return false;
+	});
+	initPage();
+});
+
+function initPage(){
+	Ajax.Get(getAbsUrl("adminWallet"),null,function(msg,data){
+		$("#erc20").val(data.erc20);
+		$("#trc20").val(data.trc20);
+		$("#omni").val(data.omni);
+		layui.form.render();
+	},function(msg){
+		alert(msg);
+	});
+}
+
+function getPostData(){
+	var erc20 = $("#erc20").val();
+	var trc20 = $("#trc20").val();
+	var omni = $("#omni").val();
+	return {
+		erc20:erc20,
+		trc20:trc20,
+		omni:omni
+	};
+} 
+
+</script>

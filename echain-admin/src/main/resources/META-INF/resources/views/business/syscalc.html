@@ -1,0 +1,119 @@
+<div class="layui-fluid">
+  <div class="layui-row layui-col-space15">
+    <div class="layui-col-md12">
+      <div class="layui-card">
+      
+      	<div class="layui-card-body layui-form" style="padding-bottom: 0px;" lay-filter="layadmin-userfront-formlist">
+			<div class="layui-input-inline">
+				<input type="text" id="query_tag" placeholder="分组"
+					style="width: 150px;" class="layui-input">
+			</div>
+			<div class="layui-input-inline">
+				 <input type="text" class="layui-input" id="query_begin" placeholder="开始时间">
+			</div>
+				 -
+			<div class="layui-input-inline">
+				 <input type="text" class="layui-input" id="query_end" placeholder="截止时间">
+			</div>
+			<div class="layui-input-inline">
+				<button id="searchBtn" class="layui-btn" lay-filter="sreach">
+					<i class="layui-icon layui-icon-search"></i> 搜索
+				</button>
+			</div>
+		</div>
+      	
+        <div class="layui-card-body">
+          <table class="layui-hide" id="listTable" lay-filter="listTable"></table>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+
+//权限
+checkPromision("syscalc:view");
+
+function getAbsUrl(url){
+	return apiRoot()+"/api/business/syscalc/"+url;
+}
+var layer,table,laydate;
+
+//字典
+layui.use(['laydate','table','layer'], function(){
+	laydate = layui.laydate;
+	layer = layui.layer;
+	table = layui.table;
+	laydate.render({
+        elem: '#query_begin',
+        type:'datetime',
+        value: new Date(new Date(new Date().toLocaleDateString()).getTime())
+    });
+    laydate.render({
+        elem: '#query_end',
+        type:'datetime'
+    });
+
+    //console.log(getQueryParam());
+    initTable();
+});
+
+//初始化table
+function initTable(){
+	
+	//layui.form.render(null, 'layadmin-userfront-formlist');
+  	table.render({
+	    elem: '#listTable'
+	    ,url:getAbsUrl('query')
+	    ,method:'post'
+	    ,where: getQueryParam()
+	    ,response:{
+	    	countName:"total"
+	    	,dataName:"result"
+	    }
+	    ,request: {
+	    	pageName: 'pageNo' //页码的参数名称，默认：page
+	    	,limitName: 'pageSize' //每页数据量的参数名，默认：limit
+	  	}
+	    ,cols: getCols()
+	    ,page: false
+	    ,id:"tbl_table"
+	});
+}
+
+//列
+function getCols(){
+	return [[
+      {field:'tag',width:120, title: '标签'}
+      ,{field:'i', title: '充值'}
+      ,{field:'o', title: '提现'}
+      ,{field:'begin',width:160, title: '开始时间',templet:function(d){return renderDate(d.begin);}}
+      ,{field:'end',width:160, title: '截止时间',templet:function(d){return renderDate(d.end);}}
+    ]];
+}
+
+//刷新
+layui.jquery("#searchBtn").on("click",function(){
+	reloadTable(getQueryParam());
+});
+
+//刷新
+function reloadTable(data){
+	//这里以搜索为例
+	table.reload("tbl_table",{
+	  where: data
+	  ,page: false
+	});
+}
+
+//查询参数
+function getQueryParam(){
+	return {
+	    "tag": $("#query_tag").val()
+	    ,"begin": $("#query_begin").val()
+	    ,"end": $("#query_end").val()
+	  };
+}
+</script>

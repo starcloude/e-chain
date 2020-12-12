@@ -1,0 +1,168 @@
+<div class="layui-fluid">
+  <div class="layui-row layui-col-space15">
+    <div class="layui-col-md12">
+      <div class="layui-card">
+      
+      	<div class="layui-card-body layui-form" style="padding-bottom: 0px;" lay-filter="layadmin-userfront-formlist">
+			<div class="layui-input-inline">
+				<input type="text" id="query_id" placeholder="机器ID"
+					style="width: 150px;" class="layui-input">
+			</div>
+			<div class="layui-input-inline">
+				<input type="text" id="query_userId" placeholder="玩家ID"
+					style="width: 150px;" class="layui-input">
+			</div>
+			<div class="layui-input-inline">
+				<input type="text" id="query_code" placeholder="机器型号"
+					style="width: 200px;" class="layui-input">
+			</div>
+			<div class="layui-input-inline">
+				<select id="query_state"><option value="">-- 所有 --</option></select>
+			</div>
+			<div class="layui-input-inline">
+				<button id="searchBtn" class="layui-btn" lay-filter="sreach">
+					<i class="layui-icon layui-icon-search"></i> 搜索
+				</button>
+			</div>
+		</div>
+      	
+        <div class="layui-card-body">
+          <table class="layui-hide" id="listTable" lay-filter="listTable"></table>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="text/html" id="optionBar">
+{{#if(d.state == 1 && hasPermission('vuser_machine:stop')){}}
+<a class="layui-btn layui-btn-xs" lay-event="stop">停止</a>
+{{#}}}
+</script>
+
+<script>
+
+var layer,table,dict;
+
+function getAbsUrl(url){
+	return apiRoot()+"/api/business/user/machine/"+url;
+}
+
+//ready
+$(function(){
+ //权限
+ checkPromision("vuser_machine:view");
+
+ loadDict("userMachineState",function(dct){
+	 dict = dct;
+	 //默认选中提现中
+	 initState("query_state");
+	 initTable();
+});
+ 
+ //刷新
+ $("#searchBtn").on("click",function(){
+ 	reloadTable(getQueryParam());
+ });
+
+});
+
+function initState(id,defaultValue){
+	renderSelect($("#"+id),dict.userMachineState,defaultValue);
+	if(layui.form){
+		layui.form.render('select');
+	}
+}
+
+//初始化table
+function initTable(){
+	layui.use(['table','layer'], function(){
+		layer = layui.layer;
+		table = layui.table;
+		layui.form.render(null, 'layadmin-userfront-formlist');
+	  	table.render({
+	    elem: '#listTable'
+	    ,url:getAbsUrl('query')
+	    ,method:'post'
+	    ,where: getQueryParam()
+	    ,response:{
+	    	countName:"total"
+	    	,dataName:"result"
+	    }
+	    ,request: {
+	    	pageName: 'pageNo' //页码的参数名称，默认：page
+	    	,limitName: 'pageSize' //每页数据量的参数名，默认：limit
+	  	}
+	    ,cols: getCols()
+	    ,page: true
+	    ,id:"tbl_table",
+	    done:function(res, curr, count){
+	   		$('#listTable').next().find('.layui-table-body').find("table" ).find("tbody").children("tr").on('dblclick',function(){
+	           	var id = JSON.stringify($('#listTable').next().find('.layui-table-body').find("table").find("tbody").find(".layui-table-hover").data('index'));
+	           	var obj = res.result[id];
+	        });
+	    }
+	  });
+	  	
+	  //##点击事件
+	  table.on('tool(listTable)', function (obj) { //注：tool是工具条事件名，test是table原始容器的属性 lay-filter="对应的值"
+		var data = obj.data //获得当前行数据
+		,layEvent = obj.event; //获得 lay-event 对应的值
+	    if (layEvent === 'stop'){
+	    	stop(data);
+	    }
+	  });
+	  
+	});
+}
+
+//列
+function getCols(){
+	return [[
+      {field:'id', width:100, title: '机器ID'}
+      ,{field:'code', title: '型号'}
+      ,{field:'userId',width:130, title: '用户'}
+      ,{field:'price',width:130,title: '价格'}
+      ,{field:'profit',width:100,title: '单日收益'}
+      ,{field:'childrenCount',width:80,title: '下级数量'}
+      ,{ width:100, title: '状态',templet:function(d){return renderStatus(d.state,dict.userMachineState);}}
+      ,{field:'beginTime',width:180, title: '开始时间',templet:function(d){return renderDate(d.beginTime);}}
+      ,{field:'endTime',width:180, title: '截止时间',templet:function(d){return renderDate(d.endTime);}}
+      ,{width:80, title: '操作',toolbar:"#optionBar"}
+    ]];
+}
+
+//刷新
+function reloadTable(data){
+	//这里以搜索为例
+	table.reload("tbl_table",{
+	  where: data
+	  ,page: {
+	    curr: 1 //重新从第 1 页开始
+	  }
+	});
+}
+
+//查询参数
+function getQueryParam(){
+	return {
+	    "code": $("#query_code").val()
+	    ,"id": $("#query_id").val()
+	    ,"state": $("#query_state").val()
+	    ,"userId": $("#query_userId").val()
+	  };
+}
+//停止
+function stop(data){
+	confirm("确定要停止这台矿机吗?一旦停止,无法恢复!",function(idx){
+		Ajax.Post(getAbsUrl("stop"),data,function(msg){
+	  		success('操作成功');
+	  		layer.close(idx);
+	  		reloadTable(getQueryParam());
+	  	},function(msg,rs){
+	  		error(msg);
+	  	});
+	});
+}
+</script>
